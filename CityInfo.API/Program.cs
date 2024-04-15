@@ -3,6 +3,7 @@ using CityInfo.API.DbContexts;
 using CityInfo.API.Services;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -61,6 +62,31 @@ builder.Services.AddScoped<ICityInfoRepository, CityInfoRepository>();
 // assemblies currently loaded in the application domain. This is used by AutoMapper to scan for types to map.
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
+// Bearer token authentication middleware
+builder.Services.AddAuthentication("Bearer").AddJwtBearer(opts =>
+{
+    opts.TokenValidationParameters = new()
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Authentication:Issuer"], // Ensure we only accept tokens from this authority
+        ValidAudience = builder.Configuration["Authentication:Audience"], // Check if the token is meant for this API
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Convert.FromBase64String(builder.Configuration["Authentication:SecretForKey"]))
+    };
+});
+
+// Add basic authorization policy:
+builder.Services.AddAuthorization(opts =>
+{
+    opts.AddPolicy("MustBeFromAntwerp", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireClaim("city", "Antwerp");
+    });
+});
+
 var app = builder.Build();
 
 ///////////////////////////////////////////////////////////// Configure the HTTP request pipeline.
@@ -80,6 +106,9 @@ app.UseHttpsRedirection();
 
 // UseRouting is where the selected endpoint is first detected. 
 app.UseRouting();
+
+// 
+app.UseAuthentication();
 
 // In between UseRouting and UseEndpoints is where middlware that can detect the endpoint and do something based on it can execute (for example re-routing depending on some state)...
 // For example authorization:

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CityInfo.API.Models;
 using CityInfo.API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -8,6 +9,7 @@ namespace CityInfo.API.Controllers
 {
     // API Controller attribute. Not strictly necessary but it configures this controller with features and behaviour aimed at improving the experience of writing APIs.
     [ApiController]
+    [Authorize]
     [Route("api/cities")]
 
     // ControllerBase contains basic functionality controllers need such as access to model state, current user, common methods for returning responses that implement IActionResult.
@@ -48,6 +50,7 @@ namespace CityInfo.API.Controllers
             }
             var (cityEntities, paginationMetadata) = await _cityInfoRepository.GetCitiesAsync(name, searchQuery, pageNum, pageSize);
 
+            // Return metadata in header to save bandwidth, provide cacheability and SOC.
             Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(paginationMetadata));
 
             return Ok(_mapper.Map<IEnumerable<CityWithoutPoiDto>>(cityEntities));
