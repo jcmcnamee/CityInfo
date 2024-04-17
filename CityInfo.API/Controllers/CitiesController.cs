@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using Asp.Versioning;
+using AutoMapper;
 using CityInfo.API.Models;
 using CityInfo.API.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +11,9 @@ namespace CityInfo.API.Controllers
     // API Controller attribute. Not strictly necessary but it configures this controller with features and behaviour aimed at improving the experience of writing APIs.
     [ApiController]
     [Authorize]
-    [Route("api/cities")]
+    [Route("api/v{version:apiVersion}/cities")]
+    [ApiVersion(1)]
+    [ApiVersion(2)]
 
     // ControllerBase contains basic functionality controllers need such as access to model state, current user, common methods for returning responses that implement IActionResult.
     // You can also user "Controller" but that contains extra functionality for views which we don't need.
@@ -72,7 +75,17 @@ namespace CityInfo.API.Controllers
 
         }
 
+        /// <summary>
+        /// Get a city by ID
+        /// </summary>
+        /// <param name="id">THe ID of the city to get</param>
+        /// <param name="includePoi">Whether or not to include points of interest</param>
+        /// <returns>A city with or without points of interest</returns>
+        /// <response code="200">Returns the re quested city</response>
         [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCity(int id, bool includePoi = false)
         {
             //var cityToReturn = _citiesDataStore.Cities.FirstOrDefault(c => c.Id == id);
